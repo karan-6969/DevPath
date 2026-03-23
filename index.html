@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DevPath — SDE Learning Tracker</title>
 
-    <!-- Preconnect to Supabase so DB connection starts immediately -->
+    <!-- Preconnect to Supabase -->
     <link rel="preconnect" href="https://supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://supabase.co" />
 
@@ -18,7 +18,7 @@
       rel="stylesheet"
     />
 
-    <!-- Critical CSS: dark background instantly, no white flash -->
+    <!-- Critical CSS: dark background instantly -->
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       html, body, #root {
@@ -33,11 +33,11 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
 
-    <!-- Register service worker for asset caching on repeat visits -->
+    <!-- Unregister any old service workers that may be causing cache issues -->
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {})
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          registrations.forEach((r) => r.unregister())
         })
       }
     </script>
