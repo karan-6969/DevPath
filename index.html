@@ -6,40 +6,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DevPath — SDE Learning Tracker</title>
 
-    <!-- DNS prefetch + preconnect for faster Supabase calls -->
+    <!-- Preconnect to Supabase so DB connection starts immediately -->
     <link rel="preconnect" href="https://supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://supabase.co" />
 
-    <!-- Google Fonts preconnect -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-    <!-- Load fonts with display=swap so text shows immediately -->
     <link
       href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
 
-    <!-- Inline critical CSS so page isn't blank while JS loads -->
+    <!-- Critical CSS: dark background instantly, no white flash -->
     <style>
-      body {
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body, #root {
+        min-height: 100%;
         background-color: #0f1117;
-        color: white;
-        margin: 0;
+        color: #ffffff;
         font-family: 'DM Sans', system-ui, sans-serif;
-      }
-      #root:empty::after {
-        content: '';
-        position: fixed;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
       }
     </style>
   </head>
-  <body class="bg-surface text-white font-body">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+
+    <!-- Register service worker for asset caching on repeat visits -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {})
+        })
+      }
+    </script>
   </body>
 </html>
