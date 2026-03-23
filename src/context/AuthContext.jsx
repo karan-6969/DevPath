@@ -1,46 +1,51 @@
 // src/context/AuthContext.jsx
-// Global auth context. Wrap <App> with <AuthProvider>.
-
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { supabase, fetchProfile } from '../lib/supabase.js'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [session, setSession]   = useState(null)       // Supabase session
-  const [profile, setProfile]   = useState(null)       // profiles row
-  const [loading, setLoading]   = useState(true)       // initial auth check
+  const [session, setSession]   = useState(undefined) // undefined = not checked yet
+  const [profile, setProfile]   = useState(null)
+  const initialized             = useRef(false)
 
-  // ─── Load session + profile on mount ────────────────────────
+  const loading = session === undefined
+
   useEffect(() => {
+    // Prevent double-init from any parent re-renders
+    if (initialized.current) return
+    initialized.current = true
+
+    // Get initial session from localStorage (instant, no network)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      if (session) loadProfile(session.user.id)
-      else setLoading(false)
+      setSession(session ?? null)
+      if (session?.user?.id) loadProfile(session.user.id)
     })
 
-    // Listen for auth changes (login, logout, token refresh)
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session)
-        if (session) {
-          await loadProfile(session.user.id)
+      (_event, session) => {
+        setSession(session ?? null)
+        if (session?.user?.id) {
+          loadProfile(session.user.id)
         } else {
           setProfile(null)
-          setLoading(false)
         }
       }
     )
+
     return () => subscription.unsubscribe()
   }, [])
 
   async function loadProfile(userId) {
-    const { data } = await fetchProfile(userId)
-    setProfile(data)
-    setLoading(false)
+    try {
+      const { data } = await fetchProfile(userId)
+      setProfile(data)
+    } catch (e) {
+      console.error('Profile load error:', e)
+    }
   }
 
-  /** Call this after logging a session to keep profile in sync. */
   function refreshProfile() {
     if (session?.user?.id) loadProfile(session.user.id)
   }
@@ -52,7 +57,6 @@ export function AuthProvider({ children }) {
   )
 }
 
-/** Hook to access auth context. */
 export function useAuth() {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>')

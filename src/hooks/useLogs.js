@@ -1,5 +1,5 @@
 // src/hooks/useLogs.js
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { fetchLogs } from '../lib/supabase.js'
 
@@ -9,19 +9,27 @@ export function useLogs(limit = null) {
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!session?.user?.id) return
     setLoading(true)
-    fetchLogs(session.user.id, limit).then(({ data, error }) => {
-      if (error) setError(error.message)
-      else setLogs(data ?? [])
+    try {
+      const { data, error } = await fetchLogs(session.user.id, limit)
+      if (error) throw error
+      setLogs(data ?? [])
+    } catch (e) {
+      setError(e.message)
+    } finally {
       setLoading(false)
-    })
+    }
   }, [session?.user?.id, limit])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   function addLog(log) {
     setLogs((prev) => [log, ...prev])
   }
 
-  return { logs, loading, error, addLog }
+  return { logs, loading, error, addLog, reload: load }
 }

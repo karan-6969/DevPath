@@ -1,6 +1,6 @@
 // src/App.jsx
 import { useEffect, useState, lazy, Suspense } from 'react'
-import { HashRouter, Routes, Route, Navigate, Outlet, useOutletContext } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useOutletContext } from 'react-router-dom'
 
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { useToast, ToastContainer } from './components/ui/Toast.jsx'
@@ -96,7 +96,7 @@ export default function App() {
 
   return (
     <AuthProvider>
-      <HashRouter>
+      <BrowserRouter>
         <Routes>
           {/* Auth pages */}
           <Route path="/login"  element={<AuthGuard><Suspense fallback={null}><Login /></Suspense></AuthGuard>} />
@@ -122,7 +122,7 @@ export default function App() {
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
-      </HashRouter>
+      </BrowserRouter>
 
       <ToastContainer toasts={toasts} onRemove={remove} />
     </AuthProvider>

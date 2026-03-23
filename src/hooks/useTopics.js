@@ -1,5 +1,5 @@
 // src/hooks/useTopics.js
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { fetchTopics } from '../lib/supabase.js'
 
@@ -9,15 +9,23 @@ export function useTopics() {
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!session?.user?.id) return
     setLoading(true)
-    fetchTopics(session.user.id).then(({ data, error }) => {
-      if (error) setError(error.message)
-      else setTopics(data ?? [])
+    try {
+      const { data, error } = await fetchTopics(session.user.id)
+      if (error) throw error
+      setTopics(data ?? [])
+    } catch (e) {
+      setError(e.message)
+    } finally {
       setLoading(false)
-    })
+    }
   }, [session?.user?.id])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   function addTopic(topic) {
     setTopics((prev) => [...prev, topic])
@@ -31,5 +39,5 @@ export function useTopics() {
     setTopics((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
   }
 
-  return { topics, loading, error, addTopic, removeTopic, replaceTopic }
+  return { topics, loading, error, addTopic, removeTopic, replaceTopic, reload: load }
 }
