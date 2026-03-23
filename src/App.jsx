@@ -1,23 +1,40 @@
 // src/App.jsx
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useOutletContext } from 'react-router-dom'
 
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
-import { useToast }              from './components/ui/Toast.jsx'
-import { ToastContainer }        from './components/ui/Toast.jsx'
-import { Sidebar }               from './components/layout/Sidebar.jsx'
-import { Navbar }                from './components/layout/Navbar.jsx'
-import { BottomTab }             from './components/layout/BottomTab.jsx'
+import { useToast, ToastContainer } from './components/ui/Toast.jsx'
+import { Sidebar }   from './components/layout/Sidebar.jsx'
+import { Navbar }    from './components/layout/Navbar.jsx'
+import { BottomTab } from './components/layout/BottomTab.jsx'
+import { Skeleton }  from './components/ui/Skeleton.jsx'
 
-import Login        from './pages/Login.jsx'
-import Signup       from './pages/Signup.jsx'
-import Dashboard    from './pages/Dashboard.jsx'
-import Topics       from './pages/Topics.jsx'
-import Log          from './pages/Log.jsx'
-import Stats        from './pages/Stats.jsx'
-import Achievements from './pages/Achievements.jsx'
+// ── Lazy load all pages (code splitting — only download when visited) ──
+const Login        = lazy(() => import('./pages/Login.jsx'))
+const Signup       = lazy(() => import('./pages/Signup.jsx'))
+const Dashboard    = lazy(() => import('./pages/Dashboard.jsx'))
+const Topics       = lazy(() => import('./pages/Topics.jsx'))
+const Log          = lazy(() => import('./pages/Log.jsx'))
+const Stats        = lazy(() => import('./pages/Stats.jsx'))
+const Achievements = lazy(() => import('./pages/Achievements.jsx'))
 
-// ─── Protected layout wrapper ────────────────────────────────
+// ── Page loading fallback ────────────────────────────────────
+function PageLoader() {
+  return (
+    <div className="space-y-4 animate-pulse p-2">
+      <Skeleton className="h-8 w-48" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 w-full rounded-xl" />
+        ))}
+      </div>
+      <Skeleton className="h-40 w-full rounded-xl" />
+      <Skeleton className="h-40 w-full rounded-xl" />
+    </div>
+  )
+}
+
+// ── Protected layout wrapper ─────────────────────────────────
 function AppLayout({ darkMode, onToggleDark, showToast }) {
   const { session, loading } = useAuth()
 
@@ -36,26 +53,21 @@ function AppLayout({ darkMode, onToggleDark, showToast }) {
 
   return (
     <div className="flex min-h-screen bg-surface">
-      {/* Desktop sidebar */}
       <Sidebar darkMode={darkMode} onToggleDark={onToggleDark} />
-
-      {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile top navbar */}
         <Navbar darkMode={darkMode} onToggleDark={onToggleDark} />
-
         <main className="flex-1 px-4 md:px-8 py-6 pb-24 md:pb-8 max-w-5xl w-full mx-auto">
-          <Outlet context={{ showToast }} />
+          <Suspense fallback={<PageLoader />}>
+            <Outlet context={{ showToast }} />
+          </Suspense>
         </main>
       </div>
-
-      {/* Mobile bottom tabs */}
       <BottomTab />
     </div>
   )
 }
 
-// ─── Redirect logged-in users away from auth pages ───────────
+// ── Redirect logged-in users away from auth pages ────────────
 function AuthGuard({ children }) {
   const { session, loading } = useAuth()
   if (loading) return null
@@ -63,15 +75,14 @@ function AuthGuard({ children }) {
   return children
 }
 
-// ─── Page wrapper to inject showToast from Outlet context ────
+// ── Inject showToast into pages via Outlet context ───────────
 function WithToast({ Component }) {
   const { showToast } = useOutletContext()
   return <Component showToast={showToast} />
 }
 
-// ─── Root app with providers ─────────────────────────────────
+// ── Root app ─────────────────────────────────────────────────
 export default function App() {
-  // Persist dark mode preference
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('devpath-dark') !== 'false'
   })
@@ -88,8 +99,8 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           {/* Auth pages */}
-          <Route path="/login"  element={<AuthGuard><Login /></AuthGuard>} />
-          <Route path="/signup" element={<AuthGuard><Signup /></AuthGuard>} />
+          <Route path="/login"  element={<AuthGuard><Suspense fallback={null}><Login /></Suspense></AuthGuard>} />
+          <Route path="/signup" element={<AuthGuard><Suspense fallback={null}><Signup /></Suspense></AuthGuard>} />
 
           {/* Protected app */}
           <Route
@@ -109,12 +120,10 @@ export default function App() {
             <Route path="/achievements" element={<WithToast Component={Achievements} />} />
           </Route>
 
-          {/* Fallback */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
 
-      {/* Global toast container */}
       <ToastContainer toasts={toasts} onRemove={remove} />
     </AuthProvider>
   )
